@@ -1,0 +1,24 @@
+name: Linter check
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10.6
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10.6
+        # make depends on poetry
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+      - name: Run linter and pytest
+        run: |
+          make lint
