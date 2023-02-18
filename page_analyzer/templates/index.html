@@ -24,13 +24,15 @@
             </div>
           </nav>
     </header>
+
     {% if messages %}
     {% for category, message in messages %}
-    <div class="{{ 'alert alert-danger' if category == "error" else 'alert alert-primary' }}" role="alert">
-        {{ message }}    
+    <div class="alert alert-danger" role="alert">
+        {{ message }}
     </div>
     {% endfor %}
     {% endif %}
+
         <div class="container-lg mt-3">
             <h1></h1>
             <div class="row">
