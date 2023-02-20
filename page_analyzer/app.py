@@ -1,8 +1,12 @@
-from flask import Flask, render_template, url_for, redirect, request, flash, get_flashed_messages
+from flask import Flask, render_template, url_for, redirect
+from flask import request, flash, get_flashed_messages
 from datetime import date
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
-import psycopg2, os, validators, requests
+import psycopg2
+import os
+import validators
+import requests
 
 
 app = Flask(__name__)
@@ -51,16 +55,17 @@ def post_index():
         cur.execute("SELECT name FROM urls")
         added_urls = cur.fetchall()
         if (url,) in added_urls:
-            cur.execute(f"SELECT id FROM urls WHERE name=%s", (url,))
+            cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
             id = cur.fetchone()
 
             flash('Страница уже существует', 'info')
             return redirect(url_for('get_url', id=id[0]))
 
-        cur.execute(f"INSERT INTO urls (name, created_at) VALUES (%s, %s)", (url, date.today()))
+        cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s)",
+                    (url, date.today()))
         conn.commit()
 
-        cur.execute(f"SELECT id FROM urls WHERE name=%s", (url,))
+        cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
         id = cur.fetchone()
 
         flash('Страница успешно добавлена', 'success')
@@ -71,7 +76,10 @@ def post_index():
 
 @app.route('/urls')
 def get_urls():
-    cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, url_checks.created_at, url_checks.status_code FROM urls LEFT JOIN url_checks ON urls.id = url_checks.url_id ORDER BY urls.id DESC")
+    cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, "
+                "url_checks.created_at, url_checks.status_code FROM urls "
+                "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
+                "ORDER BY urls.id DESC")
     data = cur.fetchall()
     return render_template('urls.html', data=data)
 
@@ -80,18 +88,20 @@ def get_urls():
 def get_url(id):
     messages = get_flashed_messages(with_categories=True)
 
-    cur.execute(f"SELECT * FROM urls WHERE id=%s", (id[0],))
+    cur.execute("SELECT * FROM urls WHERE id=%s", (id[0],))
     data = cur.fetchone()
 
-    cur.execute(f"SELECT * FROM url_checks WHERE url_id=%s ORDER BY id DESC", (id[0],))
+    cur.execute("SELECT * FROM url_checks WHERE url_id=%s ORDER BY id DESC",
+                (id[0],))
     checks = cur.fetchall()
 
-    return render_template('url.html', messages=messages, data=data, checks=checks)
+    return render_template('url.html', messages=messages, data=data,
+                           checks=checks)
 
 
 @app.post('/urls/<id>/checks')
 def post_check(id):
-    cur.execute(f"SELECT name FROM urls WHERE id=%s", (id,))
+    cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
     url = cur.fetchone()
 
     try:
@@ -101,7 +111,10 @@ def post_check(id):
         return redirect(url_for('get_url', id=id))
 
     h1, title, desc = make_check(url[0])
-    cur.execute(f"INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) VALUES (%s, %s, %s, %s, %s, %s)", (id, resp.status_code, h1, title, desc, date.today()))
+    cur.execute("INSERT INTO url_checks "
+                "(url_id, status_code, h1, title, description, created_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (id, resp.status_code, h1, title, desc, date.today()))
     conn.commit()
 
     return redirect(url_for('get_url', id=id))
