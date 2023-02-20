@@ -1,7 +1,8 @@
 from flask import Flask, render_template, url_for, redirect, request, flash, get_flashed_messages
 from datetime import date
 from urllib.parse import urlparse
-import psycopg2, os, validators
+from bs4 import BeautifulSoup
+import psycopg2, os, validators, requests
 
 
 app = Flask(__name__)
@@ -10,6 +11,28 @@ app.secret_key = "super_secret_key"
 DATABASE_URL = os.getenv('DATABASE_URL')
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
+
+
+def make_check(url):
+    resp = requests.get(url)
+    soup = BeautifulSoup(resp.text, 'html.parser')
+
+    try:
+        h1 = soup.h1.text
+    except AttributeError:
+        h1 = ''
+
+    try:
+        title = soup.title.string
+    except AttributeError:
+        title = ''
+
+    try:
+        desc = soup.meta['content']
+    except KeyError:
+        desc = ''
+
+    return h1, title, desc
 
 
 @app.get('/')
@@ -47,8 +70,8 @@ def post_index():
 
 
 @app.route('/urls')
-def all_urls():
-    cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, url_checks.status_code, url_checks.created_at FROM urls LEFT JOIN url_checks ON urls.id = url_checks.url_id;")
+def get_urls():
+    cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, url_checks.created_at, url_checks.status_code FROM urls LEFT JOIN url_checks ON urls.id = url_checks.url_id ORDER BY urls.id DESC")
     data = cur.fetchall()
     return render_template('urls.html', data=data)
 
@@ -67,7 +90,18 @@ def get_url(id):
 
 
 @app.post('/urls/<id>/checks')
-def make_check(id):
-    cur.execute(f"INSERT INTO url_checks (url_id, created_at) VALUES ({id}, '{date.today()}')")
+def post_check(id):
+    cur.execute(f"SELECT name FROM urls WHERE id = {id}")
+    url = cur.fetchone()
+
+    try:
+        resp = requests.get(url[0])
+    except requests.exceptions.ConnectionError:
+        flash('Произошла ошибка при проверке', 'error')
+        return redirect(url_for('get_url', id=id))
+
+    h1, title, desc = make_check(url[0])
+
+    cur.execute(f"INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) VALUES ({id}, {resp.status_code}, '{h1}', '{title}', '{desc}', '{date.today()}')")
     conn.commit()
     return redirect(url_for('get_url', id=id))
