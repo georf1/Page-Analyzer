@@ -51,16 +51,16 @@ def post_index():
         cur.execute("SELECT name FROM urls")
         added_urls = cur.fetchall()
         if (url,) in added_urls:
-            cur.execute(f"SELECT id FROM urls WHERE name = '{url}'")
+            cur.execute(f"SELECT id FROM urls WHERE name=%s", (url,))
             id = cur.fetchone()
 
             flash('Страница уже существует', 'info')
             return redirect(url_for('get_url', id=id[0]))
 
-        cur.execute(f"INSERT INTO urls (name, created_at) VALUES ('{url}', '{date.today()}')")
+        cur.execute(f"INSERT INTO urls (name, created_at) VALUES (%s, %s)", (url, date.today()))
         conn.commit()
 
-        cur.execute(f"SELECT id FROM urls WHERE name = '{url}'")
+        cur.execute(f"SELECT id FROM urls WHERE name=%s", (url,))
         id = cur.fetchone()
 
         flash('Страница успешно добавлена', 'success')
@@ -80,10 +80,10 @@ def get_urls():
 def get_url(id):
     messages = get_flashed_messages(with_categories=True)
 
-    cur.execute(f"SELECT * FROM urls WHERE id = {id[0]}")
+    cur.execute(f"SELECT * FROM urls WHERE id=%s", (id[0],))
     data = cur.fetchone()
 
-    cur.execute(f"SELECT * FROM url_checks WHERE url_id = {id[0]} ORDER BY id DESC")
+    cur.execute(f"SELECT * FROM url_checks WHERE url_id=%s ORDER BY id DESC", (id[0],))
     checks = cur.fetchall()
 
     return render_template('url.html', messages=messages, data=data, checks=checks)
@@ -91,7 +91,7 @@ def get_url(id):
 
 @app.post('/urls/<id>/checks')
 def post_check(id):
-    cur.execute(f"SELECT name FROM urls WHERE id = {id}")
+    cur.execute(f"SELECT name FROM urls WHERE id=%s", (id,))
     url = cur.fetchone()
 
     try:
@@ -101,7 +101,7 @@ def post_check(id):
         return redirect(url_for('get_url', id=id))
 
     h1, title, desc = make_check(url[0])
-
-    cur.execute(f"INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) VALUES ({id}, {resp.status_code}, '{h1}', '{title}', '{desc}', '{date.today()}')")
+    cur.execute(f"INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) VALUES (%s, %s, %s, %s, %s, %s)", (id, resp.status_code, h1, title, desc, date.today()))
     conn.commit()
+
     return redirect(url_for('get_url', id=id))
