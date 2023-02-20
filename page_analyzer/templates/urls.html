@@ -37,8 +37,8 @@
                             <tr>
                                 <td>{{ check[0] }}</td>
                                 <td><a href="/urls/{{ check[0] }}">{{ check[1] }}</a></td>
-                                <td>{{ check[2] }}</td>
-                                <td>{{ check[3] }}</td>
+                                <td>{{ check[2] if check[2] else '' }}</td>
+                                <td>{{ check[3] if check[2] else '' }}</td>
                             </tr>
                             {% endfor %}
                             {% endif %}
