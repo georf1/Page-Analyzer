@@ -3,11 +3,14 @@ from flask import request, flash, get_flashed_messages
 from datetime import date
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 import psycopg2
 import os
 import validators
 import requests
 
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
