@@ -128,8 +128,8 @@ def post_check(id):
     url = cur.fetchone()
 
     try:
-    response = requests.get(url[0])
-    response.raise_for_status()
+        resp = requests.get(url[0])
+        resp.raise_for_status()
     except requests.exceptions.RequestException:
         conn.close()
 
