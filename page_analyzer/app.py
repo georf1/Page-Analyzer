@@ -84,7 +84,8 @@ def post_urls():
         return redirect(url_for('get_url', id=id[0]))
     flash('Некорректный URL', 'error')
     messages = get_flashed_messages(with_categories=True)
-    return render_template('index.html', messages=messages, url=data['url'])
+    return render_template('index.html', messages=messages,
+                           url=data['url']), 422
 
 
 @app.get('/urls')
@@ -102,17 +103,21 @@ def get_urls():
     return render_template('urls.html', data=data)
 
 
-@app.route('/urls/<id>')
+@app.route('/urls/<int:id>')
 def get_url(id):
     messages = get_flashed_messages(with_categories=True)
     conn = make_conn()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM urls WHERE id=%s", (id[0],))
+    cur.execute("SELECT * FROM urls WHERE id=%s", (id,))
     data = cur.fetchone()
 
+    if not data:
+        conn.close()
+        return render_template('notfound.html'), 404
+
     cur.execute("SELECT * FROM url_checks WHERE url_id=%s ORDER BY id DESC",
-                (id[0],))
+                (id,))
     checks = cur.fetchall()
 
     conn.close()
@@ -120,7 +125,7 @@ def get_url(id):
                            checks=checks)
 
 
-@app.post('/urls/<id>/checks')
+@app.post('/urls/<int:id>/checks')
 def post_check(id):
     conn = make_conn()
     cur = conn.cursor()
