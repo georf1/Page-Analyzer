@@ -47,11 +47,11 @@ def make_check(url):
 @app.get('/')
 def get_index():
     messages = get_flashed_messages(with_categories=True)
-    return render_template('index.html', messages=messages)
+    return render_template('index.html', messages=messages, url='')
 
 
-@app.post('/')
-def post_index():
+@app.post('/urls')
+def post_urls():
     data = request.form.to_dict()
     if validators.url(data['url']):
         conn = make_conn()
@@ -83,10 +83,11 @@ def post_index():
         flash('Страница успешно добавлена', 'success')
         return redirect(url_for('get_url', id=id[0]))
     flash('Некорректный URL', 'error')
-    return redirect(url_for('get_index'))
+    messages = get_flashed_messages(with_categories=True)
+    return render_template('index.html', messages=messages, url=data['url'])
 
 
-@app.route('/urls')
+@app.get('/urls')
 def get_urls():
     conn = make_conn()
     cur = conn.cursor()
