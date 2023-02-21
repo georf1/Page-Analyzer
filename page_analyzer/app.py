@@ -66,6 +66,8 @@ def post_index():
             cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
             id = cur.fetchone()
 
+            conn.close()
+
             flash('Страница уже существует', 'info')
             return redirect(url_for('get_url', id=id[0]))
 
@@ -126,8 +128,11 @@ def post_check(id):
     url = cur.fetchone()
 
     try:
-        resp = requests.get(url[0])
-    except requests.exceptions.ConnectionError:
+    response = requests.get(url[0])
+    response.raise_for_status()
+    except requests.exceptions.RequestException:
+        conn.close()
+
         flash('Произошла ошибка при проверке', 'error')
         return redirect(url_for('get_url', id=id))
 
