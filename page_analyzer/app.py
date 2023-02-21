@@ -16,8 +16,10 @@ app = Flask(__name__)
 app.secret_key = "super_secret_key"
 
 DATABASE_URL = os.getenv('DATABASE_URL')
-conn = psycopg2.connect(DATABASE_URL)
-cur = conn.cursor()
+
+
+def make_conn():
+    return psycopg2.connect(DATABASE_URL)
 
 
 def make_check(url):
@@ -52,6 +54,9 @@ def get_index():
 def post_index():
     data = request.form.to_dict()
     if validators.url(data['url']):
+        conn = make_conn()
+        cur = conn.cursor()
+
         p = urlparse(data['url'])
         url = f'{p.scheme}://{p.hostname}'
 
@@ -71,6 +76,8 @@ def post_index():
         cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
         id = cur.fetchone()
 
+        conn.close()
+
         flash('Страница успешно добавлена', 'success')
         return redirect(url_for('get_url', id=id[0]))
     flash('Некорректный URL', 'error')
@@ -79,17 +86,24 @@ def post_index():
 
 @app.route('/urls')
 def get_urls():
+    conn = make_conn()
+    cur = conn.cursor()
+
     cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, "
                 "url_checks.created_at, url_checks.status_code FROM urls "
                 "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
                 "ORDER BY urls.id DESC")
     data = cur.fetchall()
+
+    conn.close()
     return render_template('urls.html', data=data)
 
 
 @app.route('/urls/<id>')
 def get_url(id):
     messages = get_flashed_messages(with_categories=True)
+    conn = make_conn()
+    cur = conn.cursor()
 
     cur.execute("SELECT * FROM urls WHERE id=%s", (id[0],))
     data = cur.fetchone()
@@ -98,12 +112,16 @@ def get_url(id):
                 (id[0],))
     checks = cur.fetchall()
 
+    conn.close()
     return render_template('url.html', messages=messages, data=data,
                            checks=checks)
 
 
 @app.post('/urls/<id>/checks')
 def post_check(id):
+    conn = make_conn()
+    cur = conn.cursor()
+
     cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
     url = cur.fetchone()
 
@@ -120,4 +138,5 @@ def post_check(id):
                 (id, resp.status_code, h1, title, desc, date.today()))
     conn.commit()
 
+    conn.close()
     return redirect(url_for('get_url', id=id))
