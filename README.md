@@ -5,7 +5,7 @@
 ---
 
 ### Description:
-Page Analyzer is a web application that allows you to analyze sites for SEO suitability.
+Page Analyzer is a web application that allows you to analyze sites for SEO suitability
 
 ### Dependencies:
 This project was built using these tools:
