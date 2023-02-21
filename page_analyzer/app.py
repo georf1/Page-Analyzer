@@ -139,4 +139,6 @@ def post_check(id):
     conn.commit()
 
     conn.close()
+
+    flash('Страница успешно проверена', 'success')
     return redirect(url_for('get_url', id=id))
