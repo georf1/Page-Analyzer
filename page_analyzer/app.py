@@ -23,8 +23,8 @@ def make_conn():
 
 
 def normalize_url(url):
-    parsed_url = urlparse(data['url'])
-    return f'{p.scheme}://{p.hostname}'
+    parsed_url = urlparse(url)
+    return f'{parsed_url.scheme}://{parsed_url.hostname}'
 
 
 def get_data(resp):
@@ -72,8 +72,8 @@ def post_urls():
             flash('Страница уже существует', 'info')
             return redirect(url_for('get_url', id=rec['id']))
 
-        cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
-                    (url, date.today()))
+        cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s)"
+                    "RETURNING id", (url, date.today()))
         rec = cur.fetchone()
 
         conn.close()
