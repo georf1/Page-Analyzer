@@ -22,9 +22,13 @@ def make_conn():
     return psycopg2.connect(DATABASE_URL)
 
 
-def make_check(url):
-    resp = requests.get(url)
-    soup = BeautifulSoup(resp.text, 'html.parser')
+def normalize_url(url):
+    parsed_url = urlparse(data['url'])
+    return f'{p.scheme}://{p.hostname}'
+
+
+def get_data(resp):
+    soup = BeautifulSoup(resp, 'html.parser')
 
     try:
         h1 = soup.h1.text
@@ -55,33 +59,27 @@ def post_urls():
     data = request.form.to_dict()
     if validators.url(data['url']):
         conn = make_conn()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        p = urlparse(data['url'])
-        url = f'{p.scheme}://{p.hostname}'
+        url = normalize_url(data['url'])
 
-        cur.execute("SELECT name FROM urls")
-        added_urls = cur.fetchall()
-        if (url,) in added_urls:
-            cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
-            id = cur.fetchone()
+        cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
+        rec = cur.fetchone()
 
+        if rec:
             conn.close()
 
             flash('Страница уже существует', 'info')
-            return redirect(url_for('get_url', id=id[0]))
+            return redirect(url_for('get_url', id=rec['id']))
 
-        cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s)",
+        cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
                     (url, date.today()))
-        conn.commit()
-
-        cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
-        id = cur.fetchone()
+        rec = cur.fetchone()
 
         conn.close()
 
         flash('Страница успешно добавлена', 'success')
-        return redirect(url_for('get_url', id=id[0]))
+        return redirect(url_for('get_url', id=rec['id']))
     flash('Некорректный URL', 'error')
     messages = get_flashed_messages(with_categories=True)
     return render_template('index.html', messages=messages,
@@ -128,13 +126,13 @@ def get_url(id):
 @app.post('/urls/<int:id>/checks')
 def post_check(id):
     conn = make_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
-    url = cur.fetchone()
+    rec = cur.fetchone()
 
     try:
-        resp = requests.get(url[0])
+        resp = requests.get(rec['name'])
         resp.raise_for_status()
     except requests.exceptions.RequestException:
         conn.close()
@@ -142,13 +140,12 @@ def post_check(id):
         flash('Произошла ошибка при проверке', 'error')
         return redirect(url_for('get_url', id=id))
 
-    h1, title, desc = make_check(url[0])
+    h1, title, desc = get_data(resp.text)
     cur.execute("INSERT INTO url_checks "
                 "(url_id, status_code, h1, title, description, created_at) "
                 "VALUES (%s, %s, %s, %s, %s, %s)",
                 (id, resp.status_code, h1, title, desc, date.today()))
     conn.commit()
-
     conn.close()
 
     flash('Страница успешно проверена', 'success')
