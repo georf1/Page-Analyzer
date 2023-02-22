@@ -5,6 +5,18 @@ description = "A web application that analyzes said pages for SEO suitability"
 authors = ["Ruslan Zinnatov <rh26157@gmail.com>"]
 readme = "README.md"
 packages = [{include = "page_analyzer"}]
+repository = "https://github.com/georf1/python-project-83"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Framework :: Flake8",
+    "Intended Audience :: Education",
+    "License :: Freeware",
+    "Natural Language :: Russian",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking"
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
