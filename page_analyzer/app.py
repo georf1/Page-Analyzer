@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import psycopg2
+import psycopg2.extras
 import os
 import validators
 import requests
@@ -66,6 +67,9 @@ def post_urls():
         cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
         rec = cur.fetchone()
 
+        print(rec)
+        print(url)
+
         if rec:
             conn.close()
 
@@ -74,7 +78,10 @@ def post_urls():
 
         cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s)"
                     "RETURNING id", (url, date.today()))
+        conn.commit()
         rec = cur.fetchone()
+
+        print(rec['id'])
 
         conn.close()
 
@@ -93,8 +100,10 @@ def get_urls():
 
     cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, "
                 "url_checks.created_at, url_checks.status_code FROM urls "
-                "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
-                "ORDER BY urls.id DESC")
+                "LEFT JOIN (SELECT url_id, MAX(created_at) AS created_at, "
+                "status_code FROM url_checks GROUP BY url_id, status_code) "
+                "AS url_checks ON urls.id = url_checks.url_id "
+                "ORDER BY urls.id DESC;")
     data = cur.fetchall()
 
     conn.close()
