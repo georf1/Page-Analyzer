@@ -28,23 +28,18 @@ def normalize_url(url):
     return f'{parsed_url.scheme}://{parsed_url.hostname}'
 
 
-def get_data(resp):
-    soup = BeautifulSoup(resp, 'html.parser')
+def get_page_data(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    h1 = title = desc = ''
 
-    try:
+    if soup.find('h1'):
         h1 = soup.h1.text
-    except AttributeError:
-        h1 = ''
 
-    try:
+    if soup.find('title'):
         title = soup.title.string
-    except AttributeError:
-        title = ''
 
-    try:
-        desc = soup.meta['content']
-    except KeyError:
-        desc = ''
+    if soup.find('meta'):
+        desc = soup.meta.attrs.get('content', '')
 
     return h1, title, desc
 
@@ -58,52 +53,47 @@ def get_index():
 @app.post('/urls')
 def post_urls():
     data = request.form.to_dict()
-    if validators.url(data['url']):
-        conn = make_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    if not validators.url(data['url']):
+        flash('Некорректный URL', 'error')
+        messages = get_flashed_messages(with_categories=True)
+        return render_template('index.html', messages=messages,
+                               url=data['url']), 422
+    conn = make_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        url = normalize_url(data['url'])
+    url = normalize_url(data['url'])
 
-        cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
-        rec = cur.fetchone()
+    cur.execute("SELECT id FROM urls WHERE name=%s", (url,))
+    rec = cur.fetchone()
 
-        print(rec)
-        print(url)
-
-        if rec:
-            conn.close()
-
-            flash('Страница уже существует', 'info')
-            return redirect(url_for('get_url', id=rec['id']))
-
-        cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s)"
-                    "RETURNING id", (url, date.today()))
-        conn.commit()
-        rec = cur.fetchone()
-
-        print(rec['id'])
-
+    if rec:
         conn.close()
 
-        flash('Страница успешно добавлена', 'success')
+        flash('Страница уже существует', 'info')
         return redirect(url_for('get_url', id=rec['id']))
-    flash('Некорректный URL', 'error')
-    messages = get_flashed_messages(with_categories=True)
-    return render_template('index.html', messages=messages,
-                           url=data['url']), 422
+
+    cur.execute("INSERT INTO urls (name, created_at) VALUES (%s, %s)"
+                "RETURNING id", (url, date.today()))
+    conn.commit()
+    rec = cur.fetchone()
+
+    conn.close()
+
+    flash('Страница успешно добавлена', 'success')
+    return redirect(url_for('get_url', id=rec['id']))
 
 
 @app.get('/urls')
 def get_urls():
     conn = make_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    cur.execute("SELECT DISTINCT ON (urls.id) urls.id, urls.name, "
-                "url_checks.created_at, url_checks.status_code FROM urls "
-                "LEFT JOIN (SELECT url_id, MAX(created_at) AS created_at, "
-                "status_code FROM url_checks GROUP BY url_id, status_code) "
+    cur.execute("SELECT urls.id, urls.name, url_checks.created_at, "
+                "url_checks.status_code FROM urls LEFT JOIN "
+                "(SELECT * FROM url_checks WHERE id IN "
+                "(SELECT MAX(id) as id FROM url_checks GROUP BY url_id)) "
                 "AS url_checks ON urls.id = url_checks.url_id "
-                "ORDER BY urls.id DESC;")
+                "ORDER BY urls.id DESC")
     data = cur.fetchall()
 
     conn.close()
@@ -114,7 +104,7 @@ def get_urls():
 def get_url(id):
     messages = get_flashed_messages(with_categories=True)
     conn = make_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     cur.execute("SELECT * FROM urls WHERE id=%s", (id,))
     data = cur.fetchone()
@@ -149,7 +139,7 @@ def post_check(id):
         flash('Произошла ошибка при проверке', 'error')
         return redirect(url_for('get_url', id=id))
 
-    h1, title, desc = get_data(resp.text)
+    h1, title, desc = get_page_data(resp.text)
     cur.execute("INSERT INTO url_checks "
                 "(url_id, status_code, h1, title, description, created_at) "
                 "VALUES (%s, %s, %s, %s, %s, %s)",
