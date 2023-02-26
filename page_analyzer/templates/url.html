@@ -8,15 +8,15 @@
                 <tbody>
                     <tr>
                         <td>ID</td>
-                        <td>{{ data[0] }}</td>
+                        <td>{{ data['id'] }}</td>
                     </tr>
                     <tr>
                         <td>Имя</td>
-                        <td>{{ data[1] }}</td>
+                        <td>{{ data['name'] }}</td>
                     </tr>
                     <tr>
                         <td>Дата создания</td>
-                        <td>{{ data[2] }}</td>
+                        <td>{{ data['created_at'] }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -38,12 +38,12 @@
                     </tr>
                     {% for check in checks %}
                     <tr>
-                        <td>{{ check[0] }}</td>
-                        <td>{{ check[2] }}</td>
-                        <td>{{ check[3] }}</td>
-                        <td>{{ check[4] }}</td>
-                        <td>{{ check[5] }}</td>
-                        <td>{{ check[6] }}</td>
+                        <td>{{ check['id'] }}</td>
+                        <td>{{ check['status_code'] }}</td>
+                        <td>{{ check['h1'] }}</td>
+                        <td>{{ check['title'] }}</td>
+                        <td>{{ check['description'] }}</td>
+                        <td>{{ check['created_at'] }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

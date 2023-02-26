@@ -13,12 +13,12 @@
                             <th>Код ответа</th>
                         </tr>
                         {% if data %}
-                        {% for check in data %}
+                        {% for site in data %}
                         <tr>
-                            <td>{{ check[0] }}</td>
-                            <td><a href="/urls/{{ check[0] }}">{{ check[1] }}</a></td>
-                            <td>{{ check[2] if check[2] else '' }}</td>
-                            <td>{{ check[3] if check[2] else '' }}</td>
+                            <td>{{ site['id'] }}</td>
+                            <td><a href="/urls/{{ site['id'] }}">{{ site['name'] }}</a></td>
+                            <td>{{ site['created_at'] if site['created_at'] else '' }}</td>
+                            <td>{{ site['status_code'] if site['status_code'] else '' }}</td>
                         </tr>
                         {% endfor %}
                         {% endif %}
