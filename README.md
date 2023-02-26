@@ -22,13 +22,12 @@ This project was built using these tools:
 | [flake8](https://flake8.pycqa.org)                    | "^6.0.0"        | "Tool for style guide enforcement"                                  |
 
 ### Commands:
-To install use:
+Install:
 > make install
+> add a .env file like example.env
+> remove example.env
 
-To build use:
-> make build
-
-To start use:
+To start with gunicorn use:
 > make start
 
 To start in dev mode use:
