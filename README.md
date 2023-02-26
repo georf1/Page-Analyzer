@@ -24,7 +24,9 @@ This project was built using these tools:
 ### Commands:
 Install:
 > make install
+>
 > add a .env file like example.env
+>
 > remove example.env
 
 To start with gunicorn use:
